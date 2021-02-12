@@ -171,11 +171,12 @@ itself from the hook, to avoid further futile attempts."
     "Please enter the passphrase for the ssh key"
     "Please enter the passphrase to unlock the OpenPGP secret key"
     "^.*'s password: ?$"
+    "^Token: $" ; For git-credential-manager-core (#4318).
     "^Yubikey for .*: ?$"
     "^Enter PIN for .*: ?$")
   "List of regexps matching password prompts of Git and its subprocesses.
 Also see `magit-process-find-password-functions'."
-  :package-version '(magit . "2.8.0")
+  :package-version '(magit . "3.0.0")
   :group 'magit-process
   :type '(repeat (regexp)))
 
@@ -805,6 +806,19 @@ or iff that is undefined, for backward compatibility
          (if (functionp secret)
              (funcall secret)
            secret))))
+
+(defun magit-process-git-credential-manager-core (process string)
+  "Authenticate using `git-credential-manager-core'.
+
+To use this function add it to the appropriate hook
+  (add-hook 'magit-process-find-password-functions
+            'magit-process-git-credential-manager-core)"
+  (when (string-match "^option (enter for default): $" string)
+    (magit-process-display-buffer process)
+    (process-send-string
+     process
+     ;; FIXME is 1 always the default?
+     (if (eq (read-char-choice "Option: " '(?\r ?\j ?1 ?2)) ?2) "2" "1"))))
 
 (defun magit-process-password-prompt (process string)
   "Find a password based on prompt STRING and send it to git.
